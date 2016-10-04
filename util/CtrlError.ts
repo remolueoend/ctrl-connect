@@ -114,7 +114,7 @@ export default class CtrlError extends Error {
    */
   private getSet(prop: string, val: any): CtrlError;
   private getSet(prop: string, val?: any): any | CtrlError {
-    if (!val) return this[prop];
+    if (typeof val === 'undefined') return this[prop];
     this[prop] = val;
     return this;
   }
@@ -160,7 +160,7 @@ export default class CtrlError extends Error {
    * @param  {string} [message] A longer string based description of the error.
    * @return {CtrlError}
    */
-  static notFound(message: string) {
+  static notFound(message?: string) {
     return new CtrlError(message || 'Resource not Found.').status(404).code('not_found');
   }
 
@@ -173,7 +173,7 @@ export default class CtrlError extends Error {
    * @param  {string} [message] A longer string based description of the error.
    * @return {CtrlError}
    */
-  static server(message: string) {
+  static server(message?: string) {
     return new CtrlError(message || 'Internal Server Error').status(500).code('server_error');
   }
 
@@ -185,7 +185,7 @@ export default class CtrlError extends Error {
    * @param  {string} [message] A longer string based description of the error.
    * @return {CtrlError}
    */
-  static client(message: string) {
+  static client(message?: string) {
     return new CtrlError(message || 'Client Error').status(400).code('client_error');
   }
 
@@ -222,6 +222,6 @@ export default class CtrlError extends Error {
    * @return {CtrlError}
    */
   static notAuthenticated(message: string) {
-    return new CtrlError(message).code('not_auth').status(401);
+    return new CtrlError(message || 'Not Authenticated').code('not_auth').status(401);
   }
 }

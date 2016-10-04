@@ -9,6 +9,7 @@ const metaKey = Symbol('ctrl-connect.validator');
 const providerMapping = new Map<string, DataAccessor>([
   ['query', (req: express.Request) => req.query]
 ]);
+const defaultProvider = (req: express.Request) => undefined;
 
 /**
  * Add this decorator to an action to attach a validation for a specific data provider. 
@@ -20,7 +21,7 @@ const providerMapping = new Map<string, DataAccessor>([
 export default function validate(provider: string, schema: joi.ObjectSchema) {
   return methodDecorator(metaKey, (currentValue: Validator) => {
     const v = currentValue || new Validator();
-    v.push({providerName: provider, dataAccessor: providerMapping.get(provider), schema: schema});
+    v.push({providerName: provider, dataAccessor: providerMapping.get(provider) || defaultProvider, schema: schema});
     return v;
   });
 }

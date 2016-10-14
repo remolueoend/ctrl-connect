@@ -1,9 +1,12 @@
-import * as express from 'express';
+import * as http from 'http';
 import CtrlError from './util/CtrlError';
 import privateAction from './util/privateAction';
 import { Action, ActionFn } from './util/types';
-import DependencyInjector, {IDependencyInjectorType} from './util/DependencyInjector';
+import DependencyInjector, { IDependencyInjectorType } from './util/DependencyInjector';
 import validate, { getValidator } from './validation/validate';
+import Validator from './validation/Validator';
+import response from './util/response';
+import RequestContext from './RequestContext';
 
 export default class BaseController {
 
@@ -18,16 +21,17 @@ export default class BaseController {
    * execution of the action is delayed until promise is resolved.
    * 
    * @protected
-   * @param {express.Request} $req
-   * @param {express.Response} res
+   * @param {http.IncomingMessage} $req
+   * @param {http.ServerResponse} res
    * @param {ActionFn} action The action which will be called.
    * @returns {(Promise<undefined> | undefined)}
    * 
    * @memberOf BaseController
    */
   @privateAction
-  protected beforeCall(req: express.Request, res: express.Response, action: ActionFn): Promise<undefined> | void {
-    const validationResult = getValidator(this.constructor.prototype, action.name).validate(req);
+  protected beforeCall(req: http.IncomingMessage, res: http.ServerResponse, action: ActionFn, context: RequestContext): Promise<undefined> | void {
+    context.validator.addValidation(getValidator(this.constructor.prototype, action.name));
+    const validationResult = context.validator.validate(req);
     if (!validationResult.isValid) {
       throw CtrlError.validation(validationResult);
     }
@@ -37,14 +41,14 @@ export default class BaseController {
    * Gets called after an action was called and result was written to response. 
    * 
    * @protected
-   * @param {express.Request} $req
-   * @param {express.Response} res
+   * @param {http.IncomingMessage} $req
+   * @param {http.ServerResponse} res
    * @param {ActionFn} action The action which was called.
    * 
    * @memberOf BaseController
    */
   @privateAction
-  protected afterCall(req: express.Request, res: express.Response, action: ActionFn): void {
+  protected afterCall(req: http.IncomingMessage, res: http.ServerResponse, action: ActionFn, context: RequestContext): void {
   }
 
   /**
@@ -52,17 +56,17 @@ export default class BaseController {
    * Any errors are redirected using next(err). 
    * 
    * @param {Action} action The action to call.
-   * @param {express.Request} req Current client request.
-   * @param {express.Response} res Current client response.
-   * @param {express.NextFunction} next express next function.
+   * @param {http.IncomingMessage} req Current client request.
+   * @param {http.ServerResponse} res Current client response.
+   * @param {Function} next middleware function.
    * @param {boolean} [throwIfNotFound=false] Set to true if a server error should be thrown
    * when action could not be found. Default behavior is calling next().
    */
   @privateAction
   protected callAction(
-    action: Action, req: express.Request,
-    res: express.Response,
-    next: express.NextFunction,
+    action: Action, req: http.IncomingMessage,
+    res: http.ServerResponse,
+    next: (err: any) => any,
     throwIfNotFound?: boolean): void {
     const actionFn = this.resolveActionFn(action);
     if (!actionFn) {
@@ -74,21 +78,18 @@ export default class BaseController {
         }));
     }
 
-    const injector = new this.injectoryType(req, res, next);
+    const context = new RequestContext(req),
+          injector = new this.injectoryType(req, res, next, context);
     try {
-      this.resolvePromise(this.beforeCall(req, res, actionFn))
-      .then(() => {
+      this.resolvePromise(this.beforeCall(req, res, actionFn, context)).then(() => {
         const actionResult = actionFn.apply(this, injector.getParams(actionFn));
-        return this.resolvePromise(actionResult);
+        if (typeof actionResult !== 'undefined') {
+          return this.resolvePromise(actionResult).then(r => this.writeResult(res, r, next));
+        }
       })
-      .then(result =>
-        this.writeResult(res, result))
-      .catch(err =>
-        next(err))
-      .then(() =>
-        this.afterCall(req, res, actionFn))
-      .catch(err =>
-        next(err));
+        .catch(err => next(err))
+        .then(() => this.afterCall(req, res, actionFn, context))
+        .catch(err => next(err));
     }
     catch (err) {
       return next(err);
@@ -99,12 +100,12 @@ export default class BaseController {
    * Writes the provided data to the response.
    * 
    * @protected
-   * @param {express.Response} res The current response object.
+   * @param {http.ServerResponse} res The current response object.
    * @param {*} data The data to write.
    */
   @privateAction
-  protected writeResult(res: express.Response, data: any) {
-    res.json(data).end();
+  protected writeResult(res: http.ServerResponse, data: any, next: (err?: any) => any) {
+    response(res, next).json(data).end();
   }
 
   /**
@@ -131,8 +132,8 @@ export default class BaseController {
    * @param {Action} [action] The Action to call.
    */
   @privateAction
-  public action(action?: Action): express.RequestHandler {
-    return (req: express.Request, res: express.Response, next: express.NextFunction): any => {
+  public action(action?: Action) {
+    return (req: http.IncomingMessage, res: http.ServerResponse, next: (err: any) => any): any => {
       const a = action || req.params['action'];
       this.callAction(a, req, res, next, !!action);
     };

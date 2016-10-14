@@ -1,6 +1,17 @@
 import * as express from 'express';
 import {ActionFn} from './types';
 import {prop} from './object-helper';
+import * as http from 'http';
+import * as urlHelper from 'url';
+import RequestContext from '../RequestContext';
+
+declare module 'http' {
+  export interface IncomingMessage {
+    params: { [index: string]: string; };
+    query: { [index: string]: string; };
+    body: any;
+  }
+}
 
 // See: http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
 const STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg,
@@ -10,15 +21,23 @@ interface IInjectorMethod {
   (): any;
 }
 
+interface NextFunction {
+  (err?: any): void;
+}
+
 export interface IDependencyInjector {
   getParams: (action: ActionFn) => Array<any>;
 }
 export interface IDependencyInjectorType {
-  new(req: express.Request, res: express.Response, next: express.NextFunction): IDependencyInjector;
+  new(req: http.IncomingMessage, res: http.ServerResponse, next: NextFunction, context: RequestContext): IDependencyInjector;
 }
 
 export default class DependencyInjector implements IDependencyInjector {
-  constructor(protected req: express.Request, protected res: express.Response, protected next: express.NextFunction) {
+  constructor(
+    protected req: http.IncomingMessage,
+    protected res: http.ServerResponse,
+    protected next: NextFunction,
+    protected context: RequestContext) {
   }
 
   /**
@@ -64,19 +83,37 @@ export default class DependencyInjector implements IDependencyInjector {
     return this.res;
   }
 
+  private _query: any;
+
+  /**
+   * Returns the current request's query string as a parsed object. 
+   * 
+   * @protected
+   * @returns
+   * 
+   * @memberOf DependencyInjector
+   */
   protected inject_$query() {
-    return this.req.query;
+    return this.req.query || (this._query || (this._query = urlHelper.parse(this.req.url || '', true).query));
   }
 
   protected inject_$params() {
-    return this.req.params;
+    return this.req.params || {};
   }
 
   protected inject_$body() {
-    return prop(this.req, 'body');
+    return this.req.body || {};
   }
 
   protected inject_$headers() {
     return this.req.headers;
+  }
+
+  protected inject_$next() {
+    return this.next;
+  }
+
+  protected inject_$context() {
+    return this.context;
   }
 }

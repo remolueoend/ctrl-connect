@@ -1,8 +1,8 @@
 import 'reflect-metadata';
-import {methodDecorator} from '../util/metaDecorator';
+import { methodDecorator } from '../util/metaDecorator';
 import * as joi from 'joi';
 import * as express from 'express';
-import Validator, {DataAccessor} from './Validator';
+import Validator, { DataAccessor } from './Validator';
 
 const metaKey = Symbol('ctrl-connect.validator');
 
@@ -21,7 +21,7 @@ const defaultProvider = (req: express.Request) => undefined;
 export default function validate(provider: string, schema: joi.ObjectSchema) {
   return methodDecorator(metaKey, (currentValue: Validator) => {
     const v = currentValue || new Validator();
-    v.push({providerName: provider, dataAccessor: providerMapping.get(provider) || defaultProvider, schema: schema});
+    v.push({ providerName: provider, dataAccessor: providerMapping.get(provider) || defaultProvider, schema: schema });
     return v;
   });
 }
@@ -36,6 +36,6 @@ export function getValidator(target: any, property: string): Validator {
  * @export
  * @param {joi.ObjectSchema} schema The schema to use for validation.
  */
-export function validateQuery(schema: joi.ObjectSchema) {
-  return validate('query', schema);
+export function validateQuery(schema: joi.SchemaMap) {
+  return validate('query', joi.object(schema));
 }

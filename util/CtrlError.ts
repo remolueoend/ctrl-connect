@@ -151,6 +151,10 @@ export default class CtrlError extends Error {
     };
   }
 
+  toJSON() {
+    return this.toObject();
+  }
+
   /**
    * Returns a new 404 CtrlError instance which can be directly thrown:
    * ```
@@ -221,7 +225,20 @@ export default class CtrlError extends Error {
    * @param  {string} [message] A longer string based description of the error.
    * @return {CtrlError}
    */
-  static notAuthenticated(message: string) {
-    return new CtrlError(message || 'Not Authenticated').code('not_auth').status(401);
+  static unauthorized(message?: string) {
+    return new CtrlError(message || 'Unauthorized').code('not_auth').status(401);
+  }
+
+  static forbidden(message?: string) {
+    return new CtrlError(message || 'Forbidden').code('forbidden').status(403);
+  }
+
+  static notImplemented(message?: string) {
+    debugger;
+    return new CtrlError(message || 'Method or function is not implemented.').status(500).code('not_implemented');
+  }
+
+  static badGateway(message?: string) {
+    return new CtrlError(message || 'Bad Gateway').code('bad_gateway').status(502);
   }
 }

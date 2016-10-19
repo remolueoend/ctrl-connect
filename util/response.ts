@@ -55,6 +55,11 @@ export class ResponseHandler {
     });
   }
 
+  public error(err: any) {
+    const error = err instanceof CtrlError ? err : CtrlError.server().innerErr(err);
+    this.json(error, error.status() || 500).end();
+  }
+
   public end() {
     this.res.end();
   }

@@ -4,6 +4,7 @@ import {prop} from './object-helper';
 import * as http from 'http';
 import * as urlHelper from 'url';
 import RequestContext from '../RequestContext';
+import response from './response';
 
 declare module 'http' {
   export interface IncomingMessage {
@@ -115,5 +116,9 @@ export default class DependencyInjector implements IDependencyInjector {
 
   protected inject_$context() {
     return this.context;
+  }
+
+  protected inject_$resp() {
+    return response(this.inject_$res(), this.inject_$next);
   }
 }

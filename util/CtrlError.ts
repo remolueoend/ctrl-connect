@@ -241,4 +241,8 @@ export default class CtrlError extends Error {
   static badGateway(message?: string) {
     return new CtrlError(message || 'Bad Gateway').code('bad_gateway').status(502);
   }
+
+  static fromObject(err: any) {
+    return err instanceof CtrlError ? err : CtrlError.server().innerErr(err);
+  }
 }

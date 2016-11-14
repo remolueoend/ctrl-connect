@@ -41,8 +41,8 @@ export default class Validator extends Array<Validation> {
   validate(req: http.IncomingMessage): ValidationResults {
     const valResult = new ValidationResults();
     this.forEach(v => {
-      const reqVal = v.dataAccessor ? v.dataAccessor(req) : req[v.providerName];
-      const res = joi.validate(reqVal, v.schema);
+      const reqVal = (v.dataAccessor ? v.dataAccessor(req) : req[v.providerName]) || {};
+      const res = joi.validate(reqVal, v.schema, { abortEarly: false, stripUnknown: true, presence: 'required' });
       valResult.addValidation(v.providerName, res);
       if (!res.error) req[v.providerName] = res.value;
     });

@@ -49,17 +49,41 @@ export class ResponseHandler {
     return this;
   }
 
+  /**
+   * Writes the JSON-encoded string of the provided data to the response. A response header
+   * 'Content-Type: application/json' is set. 
+   * 
+   * @param {*} data
+   * @param {number} [status]
+   * @returns
+   * 
+   * @memberOf ResponseHandler
+   */
   public json(data: any, status?: number) {
     return this.write({
       data, headers: { 'Content-Type': 'application/json' }, status
     });
   }
 
+  /**
+   * Writes a radia error to the response. If anything else than a CtrlError instance is provided,
+   * the err parameter gets wrapped into a CtrlError server error (500).
+   * 
+   * @param {*} err
+   * 
+   * @memberOf ResponseHandler
+   */
   public error(err: any) {
     const error = err instanceof CtrlError ? err : CtrlError.server().innerErr(err);
     this.json(error, error.status() || 500).end();
   }
 
+  /**
+   * Closes the response stream. No more data can be written to the client.
+   * 
+   * 
+   * @memberOf ResponseHandler
+   */
   public end() {
     this.res.end();
   }

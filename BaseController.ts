@@ -1,6 +1,6 @@
 import * as http from 'http';
 import CtrlError from './util/CtrlError';
-import privateAction from './util/privateAction';
+import publicAction from './util/publicAction';
 import { Action, ActionFn } from './util/types';
 import DependencyInjector, { IDependencyInjectorType } from './util/DependencyInjector';
 import validate, { getValidator } from './validation/validate';
@@ -28,7 +28,6 @@ export default class BaseController {
    * 
    * @memberOf BaseController
    */
-  @privateAction
   protected beforeCall(req: http.IncomingMessage, res: http.ServerResponse, action: ActionFn, context: RequestContext): Promise<undefined> | void {
     context.validator.addValidation(getValidator(this.constructor.prototype, action.name));
     const validationResult = context.validator.validate(req);
@@ -47,7 +46,6 @@ export default class BaseController {
    * 
    * @memberOf BaseController
    */
-  @privateAction
   protected afterCall(req: http.IncomingMessage, res: http.ServerResponse, action: ActionFn, context: RequestContext): void {
   }
 
@@ -62,7 +60,6 @@ export default class BaseController {
    * @param {boolean} [throwIfNotFound=false] Set to true if a server error should be thrown
    * when action could not be found. Default behavior is calling next().
    */
-  @privateAction
   protected callAction(
     action: Action, req: http.IncomingMessage,
     res: http.ServerResponse,
@@ -103,7 +100,6 @@ export default class BaseController {
    * @param {http.ServerResponse} res The current response object.
    * @param {*} data The data to write.
    */
-  @privateAction
   protected writeResult(res: http.ServerResponse, data: any, next: (err?: any) => any) {
     response(res, next).json(data).end();
   }
@@ -115,7 +111,6 @@ export default class BaseController {
    * @param {*} result The value to resolve.
    * @returns {Promise<any>}
    */
-  @privateAction
   protected resolvePromise(result: any): Promise<any> {
     if (result && typeof result.then === 'function') {
       return result;
@@ -131,7 +126,6 @@ export default class BaseController {
    * 
    * @param {Action} [action] The Action to call.
    */
-  @privateAction
   public action(action?: Action) {
     return (req: http.IncomingMessage, res: http.ServerResponse, next: (err: any) => any): any => {
       const a = action || req.params['action'];
@@ -146,7 +140,6 @@ export default class BaseController {
    * @private
    * @param {Action} action The action to resolve.
    */
-  @privateAction
   protected resolveActionFn(action: Action): ActionFn | undefined {
     let actionFn: ActionFn | undefined = undefined;
     if (typeof action === 'string') {
@@ -158,7 +151,7 @@ export default class BaseController {
       actionFn = action;
     }
 
-    if (actionFn && !privateAction.getValue(this.constructor.prototype, actionFn.name)) {
+    if (actionFn && publicAction.getValue(this.constructor.prototype, actionFn.name)) {
       return actionFn;
     }
   }

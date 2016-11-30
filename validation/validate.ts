@@ -21,7 +21,7 @@ const defaultProvider = (req: express.Request) => undefined;
 export default function validate(provider: string, schema: joi.ObjectSchema) {
   return methodDecorator(metaKey, (currentValue: Validator) => {
     const v = currentValue || new Validator();
-    v.push({ providerName: provider, dataAccessor: providerMapping.get(provider) || defaultProvider, schema: schema });
+    v.addValidation(provider, schema, providerMapping.get(provider) || defaultProvider);
     return v;
   });
 }

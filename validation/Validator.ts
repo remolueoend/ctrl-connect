@@ -14,22 +14,33 @@ declare module 'http' {
   }
 }
 
+export interface IValidatorFunction {
+  (requestData: any): joi.ValidationResult<any>;
+}
+
 export interface Validation {
   dataAccessor?: DataAccessor;
   providerName: string;
-  schema: joi.ObjectSchema;
+  validator: IValidatorFunction;
+}
+
+function schemaValidator (schema: joi.ObjectSchema): IValidatorFunction {
+  return (reqData: any) =>
+    joi.validate(reqData, schema, { abortEarly: false, stripUnknown: true, presence: 'required' });
 }
 
 export default class Validator extends Array<Validation> {
 
   addValidation(validator: Validator): this;
   addValidation(provider: string, schema: joi.ObjectSchema, accessor?: DataAccessor): this;
-  addValidation(provider: Validator | string, schema?: joi.ObjectSchema, accessor?: DataAccessor): this {
+  addValidation(provider: string, validator: IValidatorFunction, accessor?: DataAccessor): this;
+  addValidation(provider: Validator | string, schema?: joi.ObjectSchema | IValidatorFunction, accessor?: DataAccessor): this {
     if (provider instanceof Validator) {
       provider.forEach(v => this.push(v));
     }
     else if (schema) {
-      this.push({ providerName: provider, schema, dataAccessor: accessor });
+      const schemaValidatorFn = typeof schema === 'function' ? schema : schemaValidator(schema);
+      this.push({ providerName: provider, validator: schemaValidatorFn, dataAccessor: accessor });
     }
     else {
       throw CtrlError.server('No validation schema provided.');
@@ -42,7 +53,7 @@ export default class Validator extends Array<Validation> {
     const valResult = new ValidationResults();
     this.forEach(v => {
       const reqVal = (v.dataAccessor ? v.dataAccessor(req) : req[v.providerName]) || {};
-      const res = joi.validate(reqVal, v.schema, { abortEarly: false, stripUnknown: true, presence: 'required' });
+      const res = v.validator(reqVal);
       valResult.addValidation(v.providerName, res);
       if (!res.error) req[v.providerName] = res.value;
     });

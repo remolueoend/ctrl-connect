@@ -28,7 +28,12 @@ export default class BaseController {
    * 
    * @memberOf BaseController
    */
-  protected beforeCall(req: http.IncomingMessage, res: http.ServerResponse, action: ActionFn, context: RequestContext): Promise<undefined> | void {
+  protected beforeCall(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    action: ActionFn,
+    context: RequestContext): Promise<undefined> | void {
+
     context.validator.addValidation(getValidator(this.constructor.prototype, action.name));
     const validationResult = context.validator.validate(req);
     if (!validationResult.isValid) {
@@ -65,6 +70,7 @@ export default class BaseController {
     res: http.ServerResponse,
     next: (err: any) => any,
     throwIfNotFound?: boolean): void {
+
     const actionFn = this.resolveActionFn(action);
     if (!actionFn) {
       return next(!throwIfNotFound ? null : CtrlError.server('Could not find the desired action in the current controller')
@@ -101,7 +107,7 @@ export default class BaseController {
    * @param {*} data The data to write.
    */
   protected writeResult(res: http.ServerResponse, data: any, next: (err?: any) => any) {
-    response(res, next).json(data).end();
+    response(res, next).json(data);
   }
 
   /**

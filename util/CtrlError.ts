@@ -134,6 +134,9 @@ export default class CtrlError extends Error {
       if (ie instanceof CtrlError) {
         innerErr = ie.toObject();
       }
+      else if (typeof ie === 'string') {
+        innerErr = { message: ie };
+      }
       else {
         innerErr = {
           message: ie.message,
@@ -242,7 +245,7 @@ export default class CtrlError extends Error {
     return new CtrlError(message || 'Bad Gateway').code('bad_gateway').status(502);
   }
 
-  static fromObject(err: any) {
-    return err instanceof CtrlError ? err : CtrlError.server().innerErr(err);
+  static fromObject(err: any, baseError?: CtrlError) {
+    return err instanceof CtrlError ? err : (baseError || CtrlError.server()).innerErr(err);
   }
 }

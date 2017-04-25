@@ -6,7 +6,7 @@ export interface IMethodMetaDecoratorAccessor<T> {
 
 export interface IMethodMetaDecorator<T> {
   (target: any, propertyName: string): void;
-  getValue: IMethodMetaDecoratorAccessor<T>
+  getValue: IMethodMetaDecoratorAccessor<T>;
 }
 
 export interface IMethodMetaDecoratorFactory<T> {

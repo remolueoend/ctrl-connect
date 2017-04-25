@@ -6,6 +6,30 @@ export interface ProviderValidationResult<T> extends joi.ValidationResult<T> {
 }
 
 export default class ValidationResults extends Array {
+
+  constructor();
+  constructor(errorMsg: string, provider: string, path: string);
+  constructor(errorMsg?: string, provider?: string, path?: string) {
+    super();
+    if (arguments.length === 3) {
+      const errDetail = {
+        message: errorMsg as string,
+        type: '',
+        path: path as string
+      };
+      const err = {
+        message: errorMsg as string,
+        details: [errDetail],
+        simple: () => '',
+        annotated: () => '',
+        name: ''
+      };
+      this.addValidation(provider as string, {
+        error: err,
+        value: null
+      });
+    }
+  }
   /**
    * Returns if no validation contains at least one error.
    * 

@@ -107,7 +107,16 @@ export default class BaseController {
    * @param {*} data The data to write.
    */
   protected writeResult(res: http.ServerResponse, data: any, next: (err?: any) => any) {
-    response(res, next).json(data);
+    const resp = response(res, next);
+    if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
+      resp.write({
+        data,
+        headers: { 'Content-Type': 'application/octet-stream' }
+      }).end();
+    }
+    else {
+      resp.json(data);
+    }
   }
 
   /**
